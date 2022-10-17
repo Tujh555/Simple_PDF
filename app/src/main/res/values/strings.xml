@@ -4,4 +4,5 @@
         Чтобы приложение могло корректно работать с PDF файлами, пожалуйста, предоставьте разрешение.
     </string>
     <string name="get_permission_button">Ok</string>
+    <string name="exit_button_text">Выход</string>
 </resources>

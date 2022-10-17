@@ -4,63 +4,102 @@ import android.Manifest
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Environment
+import android.util.Log
+import androidx.activity.result.ActivityResultLauncher
 import androidx.annotation.RequiresApi
-import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
-import javax.inject.Inject
+import androidx.fragment.app.FragmentActivity
+import java.lang.ref.WeakReference
 
-sealed class PermissionsManager(
-    protected val activity: AppCompatActivity,
-    protected val contract: ManageStorageResultContract,
-) {
-    abstract val isPermissionGranted: Boolean
+/**
+ * Class that encapsulates the work of obtaining permission.
+ *
+ * @property activity weak reference to activity
+ * @property isPermissionGranted indicates whether permission has been received
+ */
+sealed class PermissionsManager {
     protected var onRequestFinishCallback: ((Boolean) -> Unit)? = null
-    abstract fun requestPermission()
+    abstract val isPermissionGranted: Boolean
 
+    var activity: WeakReference<FragmentActivity>? = null
+        set(value) {
+            if (field == null) {
+                field = value
+                onActivitySet()
+            }
+        }
+
+    abstract fun requestPermission()
+    abstract fun onActivitySet()
+
+    init {
+        Log.d("MyLogs", "PermissionManager init")
+    }
+
+    /**
+     * Adds callback for receiving permission
+     */
     fun onRequestFinished(callback: (Boolean) -> Unit) {
         onRequestFinishCallback = callback
     }
 
+
+    /**
+     * Class requests manage storage permission with android version >= 30
+     *
+     * @param contract is result contract for activity result API
+     */
     @RequiresApi(Build.VERSION_CODES.R)
-    class HighVersionPermissionManager @Inject constructor (
-        activity: AppCompatActivity,
-        contract: ManageStorageResultContract
-    ) : PermissionsManager(activity, contract) {
+    class HighVersionPermissionManager(
+        private val contract: ManageStorageResultContract
+    ) : PermissionsManager() {
         override val isPermissionGranted: Boolean
             get() = Environment.isExternalStorageManager()
 
-        private val getPermission = activity.registerForActivityResult(contract) {
-            onRequestFinishCallback?.invoke(it)
-        }
+        private var getPermission: ActivityResultLauncher<Unit?>? = null
 
         override fun requestPermission() {
-            getPermission.launch(null)
+            getPermission?.launch(null)
+        }
+
+        override fun onActivitySet() {
+            getPermission = activity?.get()?.let {
+                it.registerForActivityResult(contract) { res ->
+                    onRequestFinishCallback?.invoke(res)
+                }
+            } ?: throw IllegalStateException("Activity is not set")
         }
     }
 
-    class LowLevelManager @Inject constructor(
-        activity: AppCompatActivity,
-        contract: ManageStorageResultContract
-    ) : PermissionsManager(activity, contract) {
+    /**
+     * Class requests manage storage permission with android version < 30
+     */
+    class LowLevelManager : PermissionsManager() {
         override val isPermissionGranted: Boolean
-            get() = ActivityCompat.checkSelfPermission(
-                activity,
-                Manifest.permission.WRITE_EXTERNAL_STORAGE
-            ) == PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(
-                activity,
-                Manifest.permission.READ_EXTERNAL_STORAGE
-            ) == PackageManager.PERMISSION_GRANTED
+            get() = activity?.get()?.let {
+                ActivityCompat.checkSelfPermission(
+                    it,
+                    Manifest.permission.WRITE_EXTERNAL_STORAGE
+                ) == PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(
+                    it,
+                    Manifest.permission.READ_EXTERNAL_STORAGE
+                ) == PackageManager.PERMISSION_GRANTED
+            } ?: throw IllegalStateException("Activity is not set")
 
         override fun requestPermission() {
-            ActivityCompat.requestPermissions(
-                activity,
-                arrayOf(
-                    Manifest.permission.WRITE_EXTERNAL_STORAGE,
-                    Manifest.permission.READ_EXTERNAL_STORAGE
-                ),
-                REQUEST_CODE
-            )
+            activity?.get()?.let {
+                ActivityCompat.requestPermissions(
+                    it,
+                    arrayOf(
+                        Manifest.permission.WRITE_EXTERNAL_STORAGE,
+                        Manifest.permission.READ_EXTERNAL_STORAGE
+                    ),
+                    REQUEST_CODE
+                )
+            } ?: throw IllegalStateException("Activity is not set")
         }
+
+        override fun onActivitySet() { }
 
         companion object {
             private const val REQUEST_CODE = 101
