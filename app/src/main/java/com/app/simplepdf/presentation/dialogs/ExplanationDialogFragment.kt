@@ -21,6 +21,28 @@ class ExplanationDialogFragment : DialogFragment() {
     @Inject
     lateinit var manager: PermissionsManager
 
+    private val finishCallback: (Boolean) -> Unit = {
+        Toast.makeText(
+            requireContext(),
+            if (it) "Разрешение получено" else "Разрешение отклонено",
+            Toast.LENGTH_SHORT
+        ).show()
+
+        if (it) {
+            binding.run {
+                btnExit.visibility = View.VISIBLE
+
+                btnExit.setOnClickListener {
+                    dismiss()
+                }
+            }
+        }
+    }
+
+    private val buttonOkClickListener = View.OnClickListener {
+        manager.requestPermission()
+    }
+
     override fun onAttach(context: Context) {
         super.onAttach(context)
         context.appComponent.inject(this)
@@ -38,26 +60,7 @@ class ExplanationDialogFragment : DialogFragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        binding.btnOk.setOnClickListener {
-            manager.requestPermission()
-        }
-
-        manager.onRequestFinished {
-            Toast.makeText(
-                requireContext(),
-                if (it) "Разрешение получено" else "Разрешение отклонено",
-                Toast.LENGTH_SHORT
-            ).show()
-
-            if (it) {
-                binding.run {
-                    btnExit.visibility = View.VISIBLE
-
-                    btnExit.setOnClickListener {
-                        dismiss()
-                    }
-                }
-            }
-        }
+        binding.btnOk.setOnClickListener(buttonOkClickListener)
+        manager.onRequestFinished(finishCallback)
     }
 }

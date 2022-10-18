@@ -5,6 +5,7 @@ import android.os.Bundle
 import android.view.View
 import android.widget.Toast
 import androidx.fragment.app.Fragment
+import androidx.navigation.fragment.findNavController
 import by.kirich1409.viewbindingdelegate.viewBinding
 import com.app.simplepdf.R
 import com.app.simplepdf.appComponent
@@ -23,16 +24,14 @@ class MainFragment : Fragment(R.layout.fragment_main) {
     override fun onAttach(context: Context) {
         super.onAttach(context)
         context.appComponent.inject(this)
-        manager.activity = WeakReference(requireActivity())
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         if (!manager.isPermissionGranted) {
-            ExplanationDialogFragment().show(
-                requireActivity().supportFragmentManager,
-                "TAG"
-            )
+            MainFragmentDirections.actionMainFragmentToExplanationDialogFragment().let {
+                findNavController().navigate(it)
+            }
         }
     }
 }
