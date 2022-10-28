@@ -6,11 +6,11 @@ plugins {
 }
 
 android {
-    namespace 'com.app.simplepdf'
+    namespace 'ru.a1Estate.simplepdf'
     compileSdk 33
 
     defaultConfig {
-        applicationId "com.app.simplepdf"
+        applicationId "ru.a1Estate.simplepdf"
         minSdk 24
         targetSdk 33
         versionCode 1
