@@ -19,7 +19,7 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.SimplePDF"
         tools:targetApi="31"
-        android:name=".App">
+        android:name="ru.a1Estate.simplepdf.App">
         <activity
             android:name=".presentation.MainActivity"
             android:exported="true">
